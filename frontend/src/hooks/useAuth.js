@@ -26,20 +26,27 @@ export function useAuth() {
     let cancelled = false;
 
     async function ensureSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        if (!cancelled) setUserId(session.user.id);
-        return;
-      }
+        if (session?.user) {
+          if (!cancelled) setUserId(session.user.id);
+          return;
+        }
 
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) {
-        console.warn('[useAuth] Anonim oturum açılamadı:', error.message);
-        if (!cancelled) setAuthError(error.message);
-        return;
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          console.warn('[useAuth] Anonim oturum açılamadı:', error.message);
+          if (!cancelled) setAuthError(error.message);
+          return;
+        }
+        if (!cancelled) setUserId(data.user?.id ?? null);
+      } catch (err) {
+        // Supabase yapılandırılmamışsa (placeholder URL) istekler network
+        // hatasıyla reddedilir — burada yakalayıp statik veri moduna düşüyoruz.
+        console.warn('[useAuth] Oturum kontrolü başarısız:', err.message);
+        if (!cancelled) setAuthError(err.message);
       }
-      if (!cancelled) setUserId(data.user?.id ?? null);
     }
 
     ensureSession();
